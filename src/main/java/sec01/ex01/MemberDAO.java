@@ -5,24 +5,100 @@ import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import javax.sql.DataSource;
+
 public class MemberDAO {
-	// String connectionUrl = "jdbc:sqlserver://<server>:<port>;databaseName=AdventureWorks;user=<user>;password=<password>";
+	/*
+	// For Orcale
 	//private static final String driver = "oracle.jdbc.driver.OracleDriver";
 	//private static final String url = "jdbc:oracle:thin:@localhost:1521:XE";
+	
+	// For Sql Server
 	private static final String driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
 	private static final String url = "jdbc:sqlserver://localhost:1433;database=webShop";
+	
 	private static final String user = "webShop";
 	private static final String pwd = "1234";
+	
+	*/
+	
 	private Connection con;
 	//private Statement stmt;
 	private PreparedStatement pstmt;
+	private DataSource dataFactory;
 	
 	
+	
+	public MemberDAO() {
+		try {
+			// Tomcat context.xml에 Resource 설정이 되어 있어야 함.
+			/*
+			 <Resource
+		    	name="jdbc/SqlServer"
+		    	auth="Container"
+		    	type="javax.sql.DataSource"
+		    	driverClassName="com.microsoft.sqlserver.jdbc.SQLServerDriver"
+		    	url="jdbc:sqlserver://localhost:1433;database=webShop"
+		    	username="webShop"
+		    	password="1234"
+		    	maxActive="50"
+		    	maxWait="-1" />
+			 */
+			Context ctx = new InitialContext();
+			Context envContext = (Context) ctx.lookup("java:/comp/env");
+			dataFactory = (DataSource) envContext.lookup("jdbc/SqlServer");
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
+	/**
+	 * 멤버 등록
+	 * @param memberVO
+	 */
+	public void addMember(MemberVO memberVO) {
+		try {
+			con = dataFactory.getConnection();
+			String id = memberVO.getId();
+			String pwd = memberVO.getPwd();
+			String name = memberVO.getName();
+			String email = memberVO.getEmail();
+			String query = "insert into t_member";
+			query += " (id,pwd,name,email)";
+			query += " values(?,?,?,?)";
+			System.out.println("prepareStatememt: " + query);
+			pstmt = con.prepareStatement(query);
+			pstmt.setString(1, id);
+			pstmt.setString(2, pwd);
+			pstmt.setString(3, name);
+			pstmt.setString(4, email);
+			pstmt.executeUpdate();
+			pstmt.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void delMember(String id) {
+		try {
+			con = dataFactory.getConnection();
+			String query = "delete from t_member" + " where id=?";
+			System.out.println("prepareStatememt:" + query);
+			pstmt = con.prepareStatement(query);
+			pstmt.setString(1, id);
+			pstmt.executeUpdate();
+			pstmt.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	/**
 	 * 회원 list
 	 * @return list
@@ -32,7 +108,9 @@ public class MemberDAO {
 		List list = new ArrayList();
 		
 		try {
-			connDB();
+			//connDB();
+			
+			con = dataFactory.getConnection();
 			
 			String query = "select * from t_member where ? = ?";
 			
@@ -75,7 +153,7 @@ public class MemberDAO {
 		
 		return list;
 	}
-	
+	/*
 	private void connDB() {
 		try {
 			Class.forName(driver);
@@ -89,4 +167,6 @@ public class MemberDAO {
 			e.printStackTrace();
 		}
 	}
+
+	*/
 }
